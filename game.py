@@ -3,7 +3,7 @@ from pygame.locals import *
 import sys
 import math
 
-SCREEN = Rect(0,0,400,400)
+SCREEN = Rect(0,0,800,700)
 SCREEN_COLOR = "#FFFFE0"
 
 class Player(pg.sprite.Sprite):
@@ -17,8 +17,13 @@ class Player(pg.sprite.Sprite):
     self.v = v
     self.w = w
     self.theta = 60
+    self.fire_interval = 0
 
   def update(self):
+    # 移動
+    self.move()
+    # 弾を打つ
+    self.fire()
     # 衝突
     if self.rect.centerx-self.r<0:
       self.rect.centerx = self.r
@@ -42,19 +47,26 @@ class Player(pg.sprite.Sprite):
     self.rect = self.image.get_rect()
     self.rect.center = center
   
-  def move(self, key):
-    if key == K_UP:
+  def move(self):
+    keys = pg.key.get_pressed()
+    if keys[K_w]:
       self.rect.centery -= self.v[1]
-    elif key == K_DOWN:
+    if keys[K_s]:
       self.rect.centery += self.v[1]
-    elif key == K_LEFT:
+    if keys[K_a]:
       self.rect.centerx -= self.v[0]
-    elif key == K_RIGHT:
+    if keys[K_d]:
       self.rect.centerx += self.v[0]
   
-  def shoot(self):
-    self.groups()[0].add(Bullet(self.rect.center, 5, (5,10), self.theta))
-    
+  def fire(self):
+    if self.fire_interval<=0:
+      if pg.mouse.get_pressed()[0]:
+        self.fire_interval = 10
+        angleV = pg.math.Vector2((math.sin(math.radians(self.theta))*-1, math.cos(math.radians(self.theta))*-1))
+        muzzle_pos = self.rect.center + self.r * angleV
+        self.groups()[0].add(Bullet(muzzle_pos, 10, (5,10), self.theta))
+    else:
+      self.fire_interval -= 1
 class Bullet(pg.sprite.Sprite):
   def __init__(self, pos, v, size, theta):
     pg.sprite.Sprite.__init__(self)
@@ -72,7 +84,7 @@ class Bullet(pg.sprite.Sprite):
     self.move()
   def move(self):
     angleV = pg.math.Vector2((math.sin(math.radians(self.theta))*-1, math.cos(math.radians(self.theta))*-1))
-    self.rect.center = (pg.math.Vector2(self.rect.center) + self.v * angleV)[:]
+    self.rect.center = pg.math.Vector2(self.rect.center) + self.v * angleV
 
 def main():
   pg.init()
@@ -100,10 +112,6 @@ def main():
         if event.key == K_ESCAPE:
           pg.quit()
           sys.exit()
-        elif event.key in [K_UP, K_DOWN, K_LEFT, K_RIGHT]:
-          player.move(event.key)
-        elif event.key == K_SPACE:
-          player.shoot()
 
 if __name__ == "__main__":
   main()
